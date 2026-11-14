@@ -4,8 +4,18 @@
 input,textarea{width:100%;padding:11px;border:1px solid #ccd;border-radius:10px;font:inherit;box-sizing:border-box}textarea{min-height:90px;font-size:13px}label{display:block;font-size:13px;color:#5d6572;margin:8px 0 4px}
 button{padding:12px 16px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font:inherit;font-weight:600;margin:10px 6px 0 0}button.a{background:#fff;color:#1d4ed8;border:1px solid #ccd}button:disabled{opacity:.5}
 .m{font-size:14px;margin-top:8px}.er{color:#b91c1c}.ok{color:#15803d}.qr{background:#fff;display:inline-block;padding:8px;border:1px solid #dde1e7;border-radius:10px}.qr svg{display:block;width:min(70vw,300px);height:auto}.code{font:700 26px ui-monospace,monospace;letter-spacing:3px}
-table{border-collapse:collapse;width:100%;font-size:13px}td,th{padding:6px;border-bottom:1px solid #e5e8ee;text-align:left;white-space:nowrap}td img{width:42px;height:56px;object-fit:cover;border-radius:6px;display:block}.w{overflow-x:auto}</style></head>
-<body><main id="app"></main>
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{padding:6px;border-bottom:1px solid #e5e8ee;text-align:left;white-space:nowrap}td img{width:42px;height:56px;object-fit:cover;border-radius:6px;display:block}.w{overflow-x:auto}
+body{background:#f3f5fa}
+.hd{background:#0a2a6b;color:#fff;padding:14px 16px;border-bottom:4px solid #c9a227;font-weight:700;letter-spacing:.6px}
+.hd small{display:block;color:#e6c55a;font-weight:500;font-size:12px;letter-spacing:1.2px;margin-top:2px}
+h1,h2{color:#0a2a6b}
+.c{border-top:3px solid #c9a227}
+button{background:#0a2a6b}button:hover{background:#12378a}
+button.a{background:#fff;color:#0a2a6b;border:1px solid #c9a227}
+input:focus,textarea:focus{outline:2px solid #c9a227;border-color:#0a2a6b}
+th{color:#0a2a6b}
+</style></head>
+<body><div class="hd">PENTECOST UNIVERSITY<small>CLASS ATTENDANCE</small></div><main id="app"></main>
 <script>
 const app=document.getElementById('app');let K=sessionStorage.getItem('k');
 const E=(t,p,...k)=>{const e=document.createElement(t);for(const a in p||{})a==='text'?e.textContent=p[a]:a==='class'?e.className=p[a]:e[a]=p[a];k.flat().forEach(x=>e.append(x));return e};
@@ -28,7 +38,7 @@ function main(){
   if(!j.session||!j.session.active){if(liveBox.childElementCount)liveBox.replaceChildren(j.session?E('div',{class:'c'},E('p',{text:'Session ended. Records: '+j.records.length}),E('button',{class:'a',text:'Export CSV',onclick:()=>location.href='/api/admin/export?k='+K})):'');return}
   const s=j.session;
   if(!liveBox.querySelector('.qr')||lastKey!==s.sid){lastKey=s.sid;lastTok='';
-   liveBox.replaceChildren(E('div',{class:'c'},E('h2',{id:'t',text:s.course+' – live'}),E('p',{class:'m',text:'Project this. The code changes every 30 seconds.'}),E('div',{class:'qr',id:'qr'}),E('div',{class:'code',id:'code'}),
+   liveBox.replaceChildren(E('div',{class:'c'},E('h2',{id:'t',text:s.course+' – live'}),E('p',{class:'m',text:'Project this. The code changes every 10 minutes.'}),E('div',{class:'qr',id:'qr'}),E('div',{class:'code',id:'code'}),
     E('button',{class:'a',text:'End session',onclick:async()=>{await api('/api/admin/end',{});refresh()}}),E('button',{class:'a',text:'Export CSV',onclick:()=>location.href='/api/admin/export?k='+K})),E('div',{class:'c',id:'list'}))}
   if(s.token!==lastTok){lastTok=s.token;const q=qrcode(0,'M');q.addData(location.origin+'/?t='+s.token);q.make();document.getElementById('qr').innerHTML=q.createSvgTag(5,2);document.getElementById('code').textContent=s.token}
   const tb=E('table',{},E('tr',{},['Selfie','ID','Name','Time','Dist'].map(h=>E('th',{text:h}))));
