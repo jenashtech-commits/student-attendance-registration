@@ -14,7 +14,7 @@ button{background:#0a2a6b}button:hover{background:#12378a}
 button.a{background:#fff;color:#0a2a6b;border:1px solid #c9a227}
 input:focus,textarea:focus{outline:2px solid #c9a227;border-color:#0a2a6b}
 th{color:#0a2a6b}
-</style></head>
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.pc{border:1px solid #dde1e7;border-top:3px solid #c9a227;border-radius:12px;padding:8px;text-align:center;background:#fff;font-size:12px}.pc img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px}.pc b{display:block;color:#0a2a6b;font-size:13px}.pc span{display:block;color:#5d6572}</style></head>
 <body><div class="hd">PENTECOST UNIVERSITY<small>CLASS ATTENDANCE</small></div><main id="app"></main>
 <script>
 const app=document.getElementById('app');let K=sessionStorage.getItem('k');
@@ -41,9 +41,9 @@ function main(){
    liveBox.replaceChildren(E('div',{class:'c'},E('h2',{id:'t',text:s.course+' – live'}),E('p',{class:'m',text:'Project this. The code changes every 10 minutes.'}),E('div',{class:'qr',id:'qr'}),E('div',{class:'code',id:'code'}),
     E('button',{class:'a',text:'End session',onclick:async()=>{await api('/api/admin/end',{});refresh()}}),E('button',{class:'a',text:'Export CSV',onclick:()=>location.href='/api/admin/export?k='+K})),E('div',{class:'c',id:'list'}))}
   if(s.token!==lastTok){lastTok=s.token;const q=qrcode(0,'M');q.addData(location.origin+'/?t='+s.token);q.make();document.getElementById('qr').innerHTML=q.createSvgTag(5,2);document.getElementById('code').textContent=s.token}
-  const tb=E('table',{},E('tr',{},['Selfie','ID','Name','Time','Dist'].map(h=>E('th',{text:h}))));
-  j.records.forEach(r=>tb.append(E('tr',{},E('td',{},E('img',{src:'/api/admin/selfie/'+s.sid+'/'+encodeURIComponent(r.id)+'?k='+K,loading:'lazy'})),E('td',{text:r.id}),E('td',{text:r.name}),E('td',{text:new Date(r.ts).toLocaleTimeString()}),E('td',{text:r.dist+' m'}))));
-  document.getElementById('list').replaceChildren(E('h2',{text:'Present: '+j.records.length+' of '+j.roster}),E('p',{class:'m',text:'Compare each selfie with the student before accepting.'}),E('div',{class:'w'},tb))}
+  const g=E('div',{class:'grid'});
+  j.records.forEach(r=>g.append(E('div',{class:'pc'},E('img',{src:'/api/admin/selfie/'+s.sid+'/'+encodeURIComponent(r.id)+'?k='+K,loading:'lazy'}),E('b',{text:r.name}),E('span',{text:r.id}),E('span',{text:new Date(r.ts).toLocaleTimeString()+' · '+r.dist+' m'}))));
+  document.getElementById('list').replaceChildren(E('h2',{text:'Present: '+j.records.length+' of '+j.roster}),E('p',{class:'m',text:'Compare each selfie with the student before accepting.'}),g)}
 }
 K?main():login();
 </script></body></html>
