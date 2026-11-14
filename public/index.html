@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Class Attendance</title>
+<style>body{margin:0;background:#f4f5f7;font:16px/1.5 system-ui,sans-serif;color:#1a1d23}main{max-width:480px;margin:auto;padding:16px}.c{background:#fff;border:1px solid #dde1e7;border-radius:14px;padding:16px}
+input{width:100%;padding:12px;border:1px solid #ccd;border-radius:10px;font:inherit;box-sizing:border-box}button{padding:12px 16px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font:inherit;font-weight:600;margin:10px 6px 0 0}button.a{background:#fff;color:#1d4ed8;border:1px solid #ccd}button:disabled{opacity:.5}
+.er{color:#b91c1c}.ok{color:#15803d}.mu{color:#5d6572;font-size:14px}video,img.s{width:100%;max-width:300px;border-radius:12px;display:block;background:#000}</style></head>
+<body><main><h1>Class attendance</h1><div class="c" id="b">Loading…</div></main>
+<script>
+const b=document.getElementById('b'),T=new URLSearchParams(location.search).get('t');
+const E=(t,p,...k)=>{const e=document.createElement(t);for(const a in p||{})a==='text'?e.textContent=p[a]:a==='class'?e.className=p[a]:e[a]=p[a];k.forEach(x=>e.append(x));return e};
+const msg=E('p',{class:'mu'});const say=(t,c)=>{msg.textContent=t;msg.className=c||'mu'};
+const api=(u,o)=>fetch(u,o?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(o)}:{}).then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||'Error');return j});
+let dev;try{dev=localStorage.getItem('dev');if(!dev){dev=crypto.randomUUID();localStorage.setItem('dev',dev)}}catch{dev=crypto.randomUUID()}
+function pos(ms){return new Promise((ok,no)=>{if(!navigator.geolocation)return no(new Error('Location not available on this device.'));let best,w;const fin=()=>{navigator.geolocation.clearWatch(w);best?ok(best):no(new Error('Could not get your location.'))};
+const to=setTimeout(fin,ms);w=navigator.geolocation.watchPosition(p=>{if(!best||p.coords.accuracy<best.coords.accuracy)best=p;if(p.coords.accuracy<=6){clearTimeout(to);fin()}},e=>{clearTimeout(to);no(new Error(e.code===1?'Location permission denied. Allow location to mark attendance.':'Could not get your location.'))},{enableHighAccuracy:true,maximumAge:0,timeout:ms})})}
+(async()=>{
+ let s;try{s=await api('/api/status?t='+encodeURIComponent(T||''))}catch{}
+ if(!s||!s.ok)return b.replaceChildren(E('p',{class:'er',text:'No open session, or this QR code has expired. Scan the code currently shown by your lecturer.'}));
+ const id=E('input',{placeholder:'Student ID e.g. PUAC/25130001',autocapitalize:'characters'});
+ const go=E('button',{text:'Continue'});
+ go.onclick=async()=>{go.disabled=true;try{step2(await api('/api/lookup',{t:T,id:id.value}))}catch(e){say(e.message,'er');go.disabled=false}};
+ b.replaceChildren(E('p',{class:'mu',text:s.course}),id,go,msg);
+ function step2(st){
+  const v=E('video',{autoplay:true,playsInline:true,muted:true}),cap=E('button',{text:'Capture selfie',disabled:true}),sub=E('button',{text:'Submit attendance',disabled:true}),re=E('button',{class:'a',text:'Retake',style:'display:none'});let img;
+  b.replaceChildren(E('h2',{text:st.name}),E('p',{class:'mu',text:[st.id,st.programme,st.level&&'Level '+st.level].filter(Boolean).join(' · ')}),E('p',{text:'Take a live selfie so your lecturer can confirm it is you.'}),v,cap,re,sub,msg);say('');
+  let stream;navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false}).then(m=>{stream=m;v.srcObject=m;cap.disabled=false}).catch(()=>say('Camera access is needed for the selfie.','er'));
+  cap.onclick=()=>{const c=document.createElement('canvas');c.width=240;c.height=320;const x=c.getContext('2d'),w=v.videoWidth||480,h=v.videoHeight||640,k=Math.max(240/w,320/h);x.drawImage(v,(240-w*k)/2,(320-h*k)/2,w*k,h*k);img=c.toDataURL('image/jpeg',.6);v.replaceWith(E('img',{class:'s',src:img}));stream.getTracks().forEach(t=>t.stop());cap.style.display='none';re.style.display='';sub.disabled=false};
+  re.onclick=()=>step2(st);
+  sub.onclick=async()=>{sub.disabled=true;say('Checking your location…');
+   try{const p=await pos(10000);const r=await api('/api/attend',{t:T,id:st.id,img,device:dev,lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy});
+    b.replaceChildren(E('h2',{class:'ok',text:'✓ Attendance recorded'}),E('p',{text:r.name+' – '+r.course}),E('p',{class:'mu',text:new Date().toLocaleString()}))}
+   catch(e){say(e.message,'er');sub.disabled=false}}}
+})();
+</script></body></html>

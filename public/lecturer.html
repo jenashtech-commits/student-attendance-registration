@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Attendance – Lecturer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>body{margin:0;background:#f4f5f7;font:16px/1.5 system-ui,sans-serif;color:#1a1d23}main{max-width:620px;margin:auto;padding:16px}.c{background:#fff;border:1px solid #dde1e7;border-radius:14px;padding:16px;margin-bottom:14px}
+input,textarea{width:100%;padding:11px;border:1px solid #ccd;border-radius:10px;font:inherit;box-sizing:border-box}textarea{min-height:90px;font-size:13px}label{display:block;font-size:13px;color:#5d6572;margin:8px 0 4px}
+button{padding:12px 16px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font:inherit;font-weight:600;margin:10px 6px 0 0}button.a{background:#fff;color:#1d4ed8;border:1px solid #ccd}button:disabled{opacity:.5}
+.m{font-size:14px;margin-top:8px}.er{color:#b91c1c}.ok{color:#15803d}.qr{background:#fff;display:inline-block;padding:8px;border:1px solid #dde1e7;border-radius:10px}.qr svg{display:block;width:min(70vw,300px);height:auto}.code{font:700 26px ui-monospace,monospace;letter-spacing:3px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{padding:6px;border-bottom:1px solid #e5e8ee;text-align:left;white-space:nowrap}td img{width:42px;height:56px;object-fit:cover;border-radius:6px;display:block}.w{overflow-x:auto}</style></head>
+<body><main id="app"></main>
+<script>
+const app=document.getElementById('app');let K=sessionStorage.getItem('k');
+const E=(t,p,...k)=>{const e=document.createElement(t);for(const a in p||{})a==='text'?e.textContent=p[a]:a==='class'?e.className=p[a]:e[a]=p[a];k.flat().forEach(x=>e.append(x));return e};
+const say=(el,t,c)=>{el.textContent=t;el.className='m '+(c||'')};
+async function api(u,o){const r=await fetch(u,{method:o?'POST':'GET',headers:{'content-type':'application/json',authorization:'Bearer '+K},body:o?JSON.stringify(o):undefined});const j=await r.json();if(r.status===401&&K){K=null;sessionStorage.removeItem('k');login()}if(!r.ok)throw new Error(j.error||'Error');return j}
+function pos(ms){return new Promise((ok,no)=>{let best,w;const fin=()=>{navigator.geolocation.clearWatch(w);best?ok(best):no(new Error('Could not get location'))};const to=setTimeout(fin,ms);w=navigator.geolocation.watchPosition(p=>{if(!best||p.coords.accuracy<best.coords.accuracy)best=p;if(p.coords.accuracy<=6){clearTimeout(to);fin()}},e=>{clearTimeout(to);no(new Error('Location permission denied'))},{enableHighAccuracy:true,maximumAge:0,timeout:ms})})}
+function login(){const pw=E('input',{type:'password',placeholder:'Lecturer password'}),m=E('div',{class:'m'});
+ const go=E('button',{text:'Sign in',onclick:async()=>{try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:pw.value})});const j=await r.json();if(!r.ok)throw new Error(j.error);K=j.key;sessionStorage.setItem('k',K);main()}catch(e){say(m,e.message,'er')}}});
+ app.replaceChildren(E('div',{class:'c'},E('h2',{text:'Lecturer sign-in'}),pw,go,m))}
+let poll=null,lastTok='',lastKey='';
+function main(){
+ const ta=E('textarea',{placeholder:'One student per line:\nPUAC/25130001, Full Name, BSc Accounting, 400'}),rm=E('div',{class:'m'}),cs=E('input',{placeholder:'e.g. PACT 401 Management Accounting'}),rad=E('input',{type:'number',value:'20',min:'5',max:'100'}),sm=E('div',{class:'m'}),liveBox=E('div');
+ const parse=t=>t.split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(r=>r[0]&&r[1]);
+ app.replaceChildren(E('h1',{text:'Attendance – lecturer'}),
+  E('div',{class:'c'},E('h2',{text:'1. Class list'}),ta,E('button',{text:'Save roster',onclick:async()=>{try{const r=await api('/api/admin/roster',{rows:parse(ta.value)});say(rm,r.saved+' saved. '+r.total+' students on the list.','ok')}catch(e){say(rm,e.message,'er')}}}),rm),
+  E('div',{class:'c'},E('h2',{text:'2. Start a session'}),E('p',{class:'m',text:'Stand where the class is held; your location becomes the centre of the allowed zone.'}),E('label',{text:'Course'}),cs,E('label',{text:'Allowed radius (metres)'}),rad,
+   E('button',{text:'Start session here',onclick:async e=>{e.target.disabled=true;say(sm,'Getting your location…');try{const p=await pos(10000);await api('/api/admin/start',{course:cs.value||'Class',radius:+rad.value,lat:p.coords.latitude,lng:p.coords.longitude});say(sm,'Session started (location accuracy ±'+Math.round(p.coords.accuracy)+' m).','ok');lastKey=''}catch(x){say(sm,x.message,'er')}e.target.disabled=false}}),sm),liveBox);
+ clearInterval(poll);poll=setInterval(refresh,3000);refresh();
+ async function refresh(){let j;try{j=await api('/api/admin/live')}catch{return}
+  if(!j.session||!j.session.active){if(liveBox.childElementCount)liveBox.replaceChildren(j.session?E('div',{class:'c'},E('p',{text:'Session ended. Records: '+j.records.length}),E('button',{class:'a',text:'Export CSV',onclick:()=>location.href='/api/admin/export?k='+K})):'');return}
+  const s=j.session;
+  if(!liveBox.querySelector('.qr')||lastKey!==s.sid){lastKey=s.sid;lastTok='';
+   liveBox.replaceChildren(E('div',{class:'c'},E('h2',{id:'t',text:s.course+' – live'}),E('p',{class:'m',text:'Project this. The code changes every 30 seconds.'}),E('div',{class:'qr',id:'qr'}),E('div',{class:'code',id:'code'}),
+    E('button',{class:'a',text:'End session',onclick:async()=>{await api('/api/admin/end',{});refresh()}}),E('button',{class:'a',text:'Export CSV',onclick:()=>location.href='/api/admin/export?k='+K})),E('div',{class:'c',id:'list'}))}
+  if(s.token!==lastTok){lastTok=s.token;const q=qrcode(0,'M');q.addData(location.origin+'/?t='+s.token);q.make();document.getElementById('qr').innerHTML=q.createSvgTag(5,2);document.getElementById('code').textContent=s.token}
+  const tb=E('table',{},E('tr',{},['Selfie','ID','Name','Time','Dist'].map(h=>E('th',{text:h}))));
+  j.records.forEach(r=>tb.append(E('tr',{},E('td',{},E('img',{src:'/api/admin/selfie/'+s.sid+'/'+encodeURIComponent(r.id)+'?k='+K,loading:'lazy'})),E('td',{text:r.id}),E('td',{text:r.name}),E('td',{text:new Date(r.ts).toLocaleTimeString()}),E('td',{text:r.dist+' m'}))));
+  document.getElementById('list').replaceChildren(E('h2',{text:'Present: '+j.records.length+' of '+j.roster}),E('p',{class:'m',text:'Compare each selfie with the student before accepting.'}),E('div',{class:'w'},tb))}
+}
+K?main():login();
+</script></body></html>
